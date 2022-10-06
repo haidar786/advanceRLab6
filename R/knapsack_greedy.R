@@ -1,18 +1,18 @@
-# Hello, world!
-#
-# This is an example function named 'hello' 
-# which prints 'Hello, world!'.
-#
-# You can learn more about package authoring with RStudio at:
-#
-#   http://r-pkgs.had.co.nz/
-#
-# Some useful keyboard shortcuts for package authoring:
-#
-#   Install Package:           'Cmd + Shift + B'
-#   Check Package:             'Cmd + Shift + E'
-#   Test Package:              'Cmd + Shift + T'
-
-hello <- function() {
-  print("Hello, world!")
+knapsack_greedy <- function(data, weight) {
+  df <- data
+  max_values <- data$v / data$w
+  df$maxValue <- max_values
+  df <- df[order(df$maxValue, decreasing = TRUE),]
+  left_weught <- weight
+  optimal_value <- 0
+  elemets <- c()
+  for (i in 1:nrow(df)) {
+    row <- df[i,]
+      if (left_weught > row$w) {
+        optimal_value <- optimal_value + row$v
+        left_weught <- left_weught - row$w
+        elemets <- c(elemets, rownames(row))
+      }
+  }
+  return(list("value"=optimal_value, "elements" = as.numeric(elemets)))
 }
