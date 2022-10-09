@@ -1,4 +1,4 @@
-knapsack_dynamic <- function(x, W) {
+knapsack_dynamic_memoization <- function(x, W) {
   data <- x
   mat <- matrix(nrow=nrow(data), ncol=W)
   k_recursive <- function(n, C) {
@@ -22,6 +22,9 @@ knapsack_dynamic <- function(x, W) {
 }
 
 
+
+
+
 RNGversion(min(as.character(getRversion()),"3.5.3"))
 set.seed(42, kind = "Mersenne-Twister", normal.kind = "Inversion")
 n <- 2000
@@ -30,5 +33,4 @@ knapsack_objects <-
     w=sample(1:4000, size = n, replace = TRUE),
     v=runif(n = n, 0, 10000)
   )
-knapsack_dynamic(x = knapsack_objects[1:8,], W = 3500)
-
+knapsack_dynamic_memoization(x = knapsack_objects[1:8,], W = 3500)
