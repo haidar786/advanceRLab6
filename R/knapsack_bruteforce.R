@@ -1,4 +1,4 @@
-knapsack_bruteforce <- function(x, W, parallel = FALSE) {
+brute_force_knapsack <- function(x, W, ...) {
   data <- x
   lengthOfCombinations <- 2^nrow(df)
   df <- data.frame()

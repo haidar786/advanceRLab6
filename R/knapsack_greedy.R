@@ -1,6 +1,6 @@
-knapsack_greedy <- function(data, weight) {
-  df <- data
-  max_values <- data$v / data$w
+greedy_knapsack <- function(x, W) {
+  df <- x
+  max_values <- df$v / df$w
   df$maxValue <- max_values
   df <- df[order(df$maxValue, decreasing = TRUE),]
   left_weight <- weight
