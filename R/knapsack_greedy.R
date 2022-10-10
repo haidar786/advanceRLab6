@@ -1,6 +1,5 @@
 greedy_knapsack <- function(x, W) {
   df <- x
-  print(df)
   max_values <- df$v / df$w
   df$maxValue <- max_values
   df <- df[order(df$maxValue, decreasing = TRUE),]
