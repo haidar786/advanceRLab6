@@ -1,3 +1,17 @@
+#' greedy_knapsack problems is used for finding the best value over weight ratio of given data to the capacity of knapsack.
+#' @param x This argument is contain a data frame of value and weight of items
+#' @param W This is the capacity of knapsack
+#' @return  This return the list contain value and elements
+#' @examples
+#' RNGversion(min(as.character(getRversion()),"3.5.3"))
+#' set.seed(42, kind = "Mersenne-Twister", normal.kind = "Inversion")
+#' n <- 2000
+#' knapsack_objects <-
+#' data.frame(w=sample(1:4000, size = n, replace = TRUE),
+#' v=runif(n = n, 0, 10000))
+#' greedy_knapsack(x = knapsack_objects[1:12,], W = 3500)
+#' @export
+
 greedy_knapsack <- function(x, W) {
   stopifnot(is.data.frame(x))
   stopifnot(W > 0)
