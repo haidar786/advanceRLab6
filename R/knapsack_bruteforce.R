@@ -2,7 +2,7 @@ library(foreach)
 library(doParallel)
 library(parallel)
 
-brute_force_knapsack <- function(x, W, parallel = TRUE) {
+brute_force_knapsack <- function(x, W, parallel = FALSE) {
   stopifnot(is.data.frame(x))
   stopifnot(W > 0)
 
@@ -10,16 +10,13 @@ brute_force_knapsack <- function(x, W, parallel = TRUE) {
   lengthOfCombinations <- 2^nrow(df)
   df <- data.frame()
   if (parallel == FALSE) {
-    st <- system.time({
-      for (i in 1:nrow(data)) {
-        elementCombinations <- combn(rownames(data), i, simplify = FALSE)
-        combinedWeight <- colSums(combn(data$w, i))
-        combinedValue <- colSums(combn(data$v, i))
-        newDF <- data.frame(combinedWeight, combinedValue, I(elementCombinations))
-        df <- rbind(df, newDF)
-      }
-    })
-    print(st)
+    df <- foreach (i=1:nrow(data), .combine = rbind) %do% {
+      elementCombinations <- combn(rownames(data), i, simplify = FALSE)
+      combinedWeight <- colSums(combn(data$w, i))
+      combinedValue <- colSums(combn(data$v, i))
+      newDF <- data.frame(combinedWeight, combinedValue, I(elementCombinations))
+      newDF
+    }
   }else {
     numCores = detectCores()
     registerDoParallel(makeCluster(numCores))
@@ -47,15 +44,4 @@ brute_force_knapsack <- function(x, W, parallel = TRUE) {
   }
   return(list("value"=round(optimal_value), "elements" = as.numeric(elemets)))
 }
-
-
-RNGversion(min(as.character(getRversion()),"3.5.3"))
-set.seed(42, kind = "Mersenne-Twister", normal.kind = "Inversion")
-n <- 2000
-knapsack_objects <-
-  data.frame(
-    w=sample(1:4000, size = n, replace = TRUE),
-    v=runif(n = n, 0, 10000)
-  )
-brute_force_knapsack(x = knapsack_objects[1:8,], W = 3500)
 
