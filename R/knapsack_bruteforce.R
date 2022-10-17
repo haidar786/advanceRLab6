@@ -1,6 +1,6 @@
 library(foreach)
 library(doParallel)
-
+library(parallel)
 
 brute_force_knapsack <- function(x, W, parallel = TRUE) {
   stopifnot(is.data.frame(x))
@@ -21,17 +21,17 @@ brute_force_knapsack <- function(x, W, parallel = TRUE) {
     })
     print(st)
   }else {
-      numberOfCores <- parallel::detectCores()
-      registerDoParallel(numberOfCores)
-      df <- foreach(, .combine = cbind) %dopar% {
-        elementCombinations <- combn(rownames(data), i, simplify = FALSE)
-        combinedWeight <- colSums(combn(data$w, i))
-        combinedValue <- colSums(combn(data$v, i))
-        newDF <- data.frame(combinedWeight, combinedValue, I(elementCombinations))
-        newDF
-      }
+    numCores = detectCores()
+    registerDoParallel(makeCluster(numCores))
+    df <- foreach (i=1:nrow(data), .combine = rbind) %dopar% {
+      elementCombinations <- combn(rownames(data), i, simplify = FALSE)
+      combinedWeight <- colSums(combn(data$w, i))
+      combinedValue <- colSums(combn(data$v, i))
+      newDF <- data.frame(combinedWeight, combinedValue, I(elementCombinations))
+      newDF
+    }
+    stopImplicitCluster()
   }
-  return(df)
   df <- df[order(df$combinedValue, decreasing = TRUE),]
   left_weight <- W
   optimal_value <- 0
