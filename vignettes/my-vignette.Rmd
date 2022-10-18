@@ -1,5 +1,7 @@
 ---
-title: "my-vignette"
+title: "Adavance r lab 6"
+authors: "Hussnain & Arfan - Group-16"
+date: "2022-10-18"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{my-vignette}
@@ -14,6 +16,232 @@ knitr::opts_chunk$set(
 )
 ```
 
+We imports foreach and doParallel libraries for parallel programming in brute_force_knapsack function
+
 ```{r setup}
-library(advanceRLab6)
+library(foreach)
+library(doParallel)
+library(parallel)
+library(profvis)
 ```
+
+## Section 1: Brute force knapsack 
+The brute_force_knapsack function used for finding all the possible combinations of max value per weight ratio of given data.
+
+```{r}
+brute_force_knapsack <- function(x, W, parallel = FALSE) {
+  stopifnot(is.data.frame(x))
+  stopifnot(W > 0)
+
+  data <- x
+  lengthOfCombinations <- 2^nrow(df)
+  df <- data.frame()
+  if (parallel == FALSE) {
+    df <- foreach (i=1:nrow(data), .combine = rbind) %do% {
+      elementCombinations <- combn(rownames(data), i, simplify = FALSE)
+      combinedWeight <- colSums(combn(data$w, i))
+      combinedValue <- colSums(combn(data$v, i))
+      newDF <- data.frame(combinedWeight, combinedValue, I(elementCombinations))
+      newDF
+    }
+  }else {
+    numCores = detectCores()
+    registerDoParallel(makeCluster(numCores))
+    df <- foreach (i=1:nrow(data), .combine = rbind) %dopar% {
+      elementCombinations <- combn(rownames(data), i, simplify = FALSE)
+      combinedWeight <- colSums(combn(data$w, i))
+      combinedValue <- colSums(combn(data$v, i))
+      newDF <- data.frame(combinedWeight, combinedValue, I(elementCombinations))
+      newDF
+    }
+    stopImplicitCluster()
+  }
+  df <- df[order(df$combinedValue, decreasing = TRUE),]
+  left_weight <- W
+  optimal_value <- 0
+  elemets <- c()
+  starts <- rep(100, 40)
+  for (i in 1:nrow(df)) {
+    row <- df[i,]
+    if (left_weight > row$combinedWeight) {
+      optimal_value <- optimal_value + row$combinedValue
+      left_weight <- left_weight - row$combinedWeight
+      elemets <- c(elemets, unlist(row$elementCombinations))
+    }
+  }
+  return(list("value"=round(optimal_value), "elements" = as.numeric(elemets)))
+}
+```
+
+We used below sample code to check our function results.
+
+```{r}
+RNGversion(min(as.character(getRversion()),"3.5.3"))
+set.seed(42, kind = "Mersenne-Twister", normal.kind = "Inversion")
+n <- 2000
+knapsack_objects <-
+data.frame(
+w=sample(1:4000, size = n, replace = TRUE),
+v=runif(n = n, 0, 10000)
+)
+```
+
+We called our function using below values without parallel on and get expected results.
+
+```{r}
+brute_force_knapsack(x = knapsack_objects[1:8,], W = 3500, parallel = FALSE)
+```
+
+Question How much time does it takes to run the algorithm for n = 16 objects?
+
+The answers without parallel being true is: 
+```{r}
+system.time({
+  brute_force_knapsack(x = knapsack_objects[1:16,], W = 3500, parallel = FALSE)
+})
+```
+
+We than called our function with parallel being true and get expected results.
+
+```{r}
+brute_force_knapsack(x = knapsack_objects[1:8,], W = 3500, parallel = TRUE)
+```
+
+Question How much time does it takes to run the algorithm for n = 16 objects?
+
+The answers with parallel being true is: 
+```{r}
+system.time({
+  brute_force_knapsack(x = knapsack_objects[1:16,], W = 3500, parallel = TRUE)
+})
+```
+
+## Section 2: Knapsack dynamic
+knapsack_dynamic problems is used for finding all the possible combinations of given data dynamically.
+
+```{r}
+knapsack_dynamic <- function(x, W) {
+  data <- x
+  mat <- matrix(nrow=nrow(data), ncol=W)
+  k_recursive <- function(n, C) {
+    if (isTRUE(mat[n,C])) {
+      return(mat[n,C])
+    }
+    res <- 0
+    if (n == 0 | C == 0) {
+      res <- 0
+    }else if (data$w[n] > C) {
+      res <- k_recursive(n-1, C)
+    }else {
+      temp1 <- k_recursive(n-1, C)
+      temp2 <- data$v[n] + k_recursive(n-1, C - data$w[n])
+      res <- max(temp1, temp2)
+    }
+    mat[n,C] <- res
+    return(res)
+  }
+  return(list(value = k_recursive(n = nrow(data), C = W)))
+}
+```
+
+We called our function using below values and get expected results.
+
+```{r}
+knapsack_dynamic(x = knapsack_objects[1:8,], W = 3500)
+```
+
+Question How much time does it takes to run the algorithm for n = 500 objects?
+
+The answer is:
+```{r}
+#   user  system elapsed 
+#   160.756   43.323  203.069 
+```
+
+## Section 3: Greddy knapsack
+greedy_knapsack problems is used for finding the best value over weight ratio of given data to the capacity of knapsack.
+
+```{r}
+greedy_knapsack <- function(x, W) {
+  stopifnot(is.data.frame(x))
+  stopifnot(W > 0)
+  df <- x
+  max_values <- df$v / df$w
+  df$maxValue <- max_values
+  rn <- rownames(df)
+  df$elements <- rn
+  df <- df[order(df$maxValue, decreasing = TRUE),]
+  rownames(df) <- rn
+  left_weight <- W
+  optimal_value <- 0
+  elements <- c()
+  index <- 1
+  repeat {
+    if (left_weight >= df$w[index]) {
+      optimal_value <- optimal_value + df$v[index]
+      left_weight <- left_weight - df$w[index]
+      elements <- c(elements, df$elements[index])
+    }else {
+      break
+    }
+    index <- index + 1
+  }
+  return(list("value"=round(optimal_value), "elements" = as.numeric(elements)))
+}
+```
+
+We called our function using below values and get expected results.
+
+```{r}
+greedy_knapsack(x = knapsack_objects[1:800,], W = 3500)
+```
+
+Question How much time does it takes to run the algorithm for n = 1000000 objects?
+
+The answers is:
+```{r}
+system.time({
+  greedy_knapsack(x = knapsack_objects[1:1000000,], W = 3500)
+})
+```
+
+## Section 4.1: Profiling
+Profiling our functions code using profvis package:
+
+```{r}
+profvis::profvis({
+  brute_force_knapsack(x = knapsack_objects[1:8,], W = 3500, parallel = FALSE)
+  knapsack_dynamic(x = knapsack_objects[1:8,], W = 3500)
+  greedy_knapsack(x = knapsack_objects[1:800,], W = 3500)
+})
+```
+
+## Section 4.2: Optimizing
+
+After profiling with different results we find the solution of "memoization" to optimize our code. We implemented this technique in our knapsack_dynamic function. After implemeation of "memoization" our function memorize the previous results and instead of calculating again it just gets the stored data from a matrix that we created. Hence reduced the overall function time.
+
+```{r}
+knapsack_dynamic <- function(x, W) {
+  data <- x
+  mat <- matrix(nrow=nrow(data), ncol=W) # Memoization: Create a matrix for number of row and column as data
+  k_recursive <- function(n, C) {
+    if (isTRUE(mat[n,C])) { # Memoization: Checking if is already calculate and stored
+      return(mat[n,C])
+    }
+    res <- 0
+    if (n == 0 | C == 0) {
+      res <- 0
+    }else if (data$w[n] > C) {
+      res <- k_recursive(n-1, C)
+    }else {
+      temp1 <- k_recursive(n-1, C)
+      temp2 <- data$v[n] + k_recursive(n-1, C - data$w[n])
+      res <- max(temp1, temp2)
+    }
+    mat[n,C] <- res # Memoization: Storing calculated result in matrix
+    return(res)
+  }
+  return(list(value = k_recursive(n = nrow(data), C = W)))
+}
+```
+
