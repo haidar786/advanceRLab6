@@ -104,16 +104,19 @@ system.time({
 We than called our function with parallel being true and get expected results.
 
 ```{r}
-brute_force_knapsack(x = knapsack_objects[1:8,], W = 3500, parallel = TRUE)
+# $value
+# [1] 16770
+# 
+# $elements
+# [1] 5 8
 ```
 
 Question How much time does it takes to run the algorithm for n = 16 objects?
 
 The answers with parallel being true is: 
 ```{r}
-system.time({
-  brute_force_knapsack(x = knapsack_objects[1:16,], W = 3500, parallel = TRUE)
-})
+  #  user  system elapsed 
+  # 1.373   0.024   2.284 
 ```
 
 ## Section 2: Knapsack dynamic
